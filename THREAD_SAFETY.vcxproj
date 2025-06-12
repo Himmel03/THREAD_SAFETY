@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="qtype.h" />
+    <ClInclude Include="queue.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="queue.cpp" />
