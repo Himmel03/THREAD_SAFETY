@@ -51,3 +51,22 @@ Node* nclone(Node* node) {
     return nalloc(node->item);
 }
 
+Queue* init(void) {
+    Queue* q = new Queue;
+    q->head = q->tail = nullptr;
+    InitializeCriticalSection(&q->lock);
+    return q;
+}
+
+void release(Queue* queue) {
+    EnterCriticalSection(&queue->lock);
+    Node* cur = queue->head;
+    while (cur) {
+        Node* next = cur->next;
+        nfree(cur);
+        cur = next;
+    }
+    LeaveCriticalSection(&queue->lock);
+    DeleteCriticalSection(&queue->lock);
+    delete queue;
+}
