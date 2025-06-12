@@ -115,3 +115,28 @@ Reply enqueue(Queue* queue, Item item) {
     LeaveCriticalSection(&queue->lock);
     return reply;
 }
+
+Reply dequeue(Queue* queue) {
+    Reply reply = { false, {} };
+
+    EnterCriticalSection(&queue->lock);
+
+    if (!queue->head) {
+        LeaveCriticalSection(&queue->lock);
+        return reply;
+    }
+
+    Node* node = queue->head;
+    queue->head = node->next;
+    if (!queue->head) queue->tail = nullptr;
+
+    reply.success = true;
+    reply.item.key = node->item.key;
+    reply.item.value_size = node->item.value_size;
+    reply.item.value = deepcopy(node->item.value, node->item.value_size);
+
+    nfree(node);
+    LeaveCriticalSection(&queue->lock);
+    return reply;
+}
+
