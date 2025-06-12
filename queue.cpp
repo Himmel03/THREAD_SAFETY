@@ -3,12 +3,14 @@
 #include "queue.h"
 #include "qtype.h"
 
+// 깊은 복사 함수
 static Value deepcopy(Value value, int size) {
     Value new_val = new char[size];
     memcpy(new_val, value, size);
     return new_val;
 }
 
+// Node 생성
 Node* nalloc(Item item) {
     Node* node = new Node;
     node->item.key = item.key;
@@ -18,6 +20,7 @@ Node* nalloc(Item item) {
     return node;
 }
 
+// Node 해제
 void nfree(Node* node) {
     if (node) {
         delete[] node->item.value;
@@ -25,32 +28,13 @@ void nfree(Node* node) {
     }
 }
 
+// Node 복제
 Node* nclone(Node* node) {
     if (!node) return nullptr;
     return nalloc(node->item);
 }
 
-Node* nalloc(Item item) {
-    Node* node = new Node;
-    node->item.key = item.key;
-    node->item.value_size = item.value_size;
-    node->item.value = deepcopy(item.value, item.value_size);
-    node->next = nullptr;
-    return node;
-}
-
-void nfree(Node* node) {
-    if (node) {
-        delete[] node->item.value;
-        delete node;
-    }
-}
-
-Node* nclone(Node* node) {
-    if (!node) return nullptr;
-    return nalloc(node->item);
-}
-
+// Queue 초기화
 Queue* init(void) {
     Queue* q = new Queue;
     q->head = q->tail = nullptr;
@@ -58,6 +42,7 @@ Queue* init(void) {
     return q;
 }
 
+// Queue 해제
 void release(Queue* queue) {
     EnterCriticalSection(&queue->lock);
     Node* cur = queue->head;
@@ -71,6 +56,7 @@ void release(Queue* queue) {
     delete queue;
 }
 
+// Enqueue (정렬 삽입 + 중복 key 처리)
 Reply enqueue(Queue* queue, Item item) {
     Reply reply = { false, {} };
     EnterCriticalSection(&queue->lock);
@@ -80,19 +66,16 @@ Reply enqueue(Queue* queue, Item item) {
 
     while (cur) {
         if (cur->item.key == item.key) {
-            // 기존 노드의 value를 새로운 value로 깊은 복사하여 교체
+            // 중복 key: value 업데이트
             delete[] cur->item.value;
             cur->item.value = deepcopy(item.value, item.value_size);
             cur->item.value_size = item.value_size;
-
             reply.success = true;
             reply.item = cur->item;
             LeaveCriticalSection(&queue->lock);
             return reply;
         }
-        if (cur->item.key > item.key) {
-            break;
-        }
+        if (cur->item.key > item.key) break;
         prev = cur;
         cur = cur->next;
     }
@@ -116,9 +99,9 @@ Reply enqueue(Queue* queue, Item item) {
     return reply;
 }
 
+// Dequeue
 Reply dequeue(Queue* queue) {
-    Reply reply = { false, {} };
-
+    Reply reply = { false, {0, nullptr, 0} };  // 명확한 초기화
     EnterCriticalSection(&queue->lock);
 
     if (!queue->head) {
@@ -133,13 +116,22 @@ Reply dequeue(Queue* queue) {
     reply.success = true;
     reply.item.key = node->item.key;
     reply.item.value_size = node->item.value_size;
-    reply.item.value = deepcopy(node->item.value, node->item.value_size);
+
+    if (node->item.value && node->item.value_size > 0) {
+        reply.item.value = deepcopy(node->item.value, node->item.value_size);
+    }
+    else {
+        reply.item.value = nullptr;
+        reply.item.value_size = 0;
+    }
 
     nfree(node);
     LeaveCriticalSection(&queue->lock);
     return reply;
 }
 
+
+// Range (start <= key <= end)
 Queue* range(Queue* queue, Key start, Key end) {
     Queue* new_q = init();
     EnterCriticalSection(&queue->lock);
@@ -147,11 +139,10 @@ Queue* range(Queue* queue, Key start, Key end) {
     Node* cur = queue->head;
     while (cur) {
         if (cur->item.key >= start && cur->item.key <= end) {
-            Item cloned = {
-                .key = cur->item.key,
-                .value = deepcopy(cur->item.value, cur->item.value_size),
-                .value_size = cur->item.value_size
-            };
+            Item cloned;
+            cloned.key = cur->item.key;
+            cloned.value = deepcopy(cur->item.value, cur->item.value_size);
+            cloned.value_size = cur->item.value_size;
             enqueue(new_q, cloned);
         }
         cur = cur->next;
@@ -160,4 +151,3 @@ Queue* range(Queue* queue, Key start, Key end) {
     LeaveCriticalSection(&queue->lock);
     return new_q;
 }
-

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <windows.h>  // CRITICAL_SECTION 정의
+#include <stdbool.h>  // C에서 bool 사용을 위한 헤더
+
 typedef int Key;
 typedef char* Value;
 
@@ -24,4 +27,3 @@ typedef struct {
     Node* tail;
     CRITICAL_SECTION lock; // Windows thread-safe
 } Queue;
-
