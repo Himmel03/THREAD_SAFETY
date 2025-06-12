@@ -6,6 +6,7 @@
 이름 : 김민정  
 
 [ 진행 상황 ]
+
 Windows CRITICAL_SECTION을 사용해 스레드 안전한 연결 리스트 기반 큐 구현
 
 Item은 key(int)와 동적 할당된 value(char*)를 포함
