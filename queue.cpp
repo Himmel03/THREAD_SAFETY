@@ -70,3 +70,34 @@ void release(Queue* queue) {
     DeleteCriticalSection(&queue->lock);
     delete queue;
 }
+
+Reply enqueue(Queue* queue, Item item) {
+    Reply reply = { false, {} };
+    EnterCriticalSection(&queue->lock);
+
+    Node* prev = nullptr;
+    Node* cur = queue->head;
+
+    while (cur && cur->item.key < item.key) {
+        prev = cur;
+        cur = cur->next;
+    }
+
+    Node* new_node = nalloc(item);
+
+    if (!prev) {
+        new_node->next = queue->head;
+        queue->head = new_node;
+        if (!queue->tail) queue->tail = new_node;
+    }
+    else {
+        new_node->next = prev->next;
+        prev->next = new_node;
+        if (!new_node->next) queue->tail = new_node;
+    }
+
+    reply.success = true;
+    reply.item = new_node->item;
+    LeaveCriticalSection(&queue->lock);
+    return reply;
+}
