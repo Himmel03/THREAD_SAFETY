@@ -140,3 +140,24 @@ Reply dequeue(Queue* queue) {
     return reply;
 }
 
+Queue* range(Queue* queue, Key start, Key end) {
+    Queue* new_q = init();
+    EnterCriticalSection(&queue->lock);
+
+    Node* cur = queue->head;
+    while (cur) {
+        if (cur->item.key >= start && cur->item.key <= end) {
+            Item cloned = {
+                .key = cur->item.key,
+                .value = deepcopy(cur->item.value, cur->item.value_size),
+                .value_size = cur->item.value_size
+            };
+            enqueue(new_q, cloned);
+        }
+        cur = cur->next;
+    }
+
+    LeaveCriticalSection(&queue->lock);
+    return new_q;
+}
+
