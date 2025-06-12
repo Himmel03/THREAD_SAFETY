@@ -78,7 +78,21 @@ Reply enqueue(Queue* queue, Item item) {
     Node* prev = nullptr;
     Node* cur = queue->head;
 
-    while (cur && cur->item.key < item.key) {
+    while (cur) {
+        if (cur->item.key == item.key) {
+            // 기존 노드의 value를 새로운 value로 깊은 복사하여 교체
+            delete[] cur->item.value;
+            cur->item.value = deepcopy(item.value, item.value_size);
+            cur->item.value_size = item.value_size;
+
+            reply.success = true;
+            reply.item = cur->item;
+            LeaveCriticalSection(&queue->lock);
+            return reply;
+        }
+        if (cur->item.key > item.key) {
+            break;
+        }
         prev = cur;
         cur = cur->next;
     }
